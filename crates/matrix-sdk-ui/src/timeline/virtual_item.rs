@@ -13,9 +13,10 @@
 // limitations under the License.
 
 use ruma::MilliSecondsSinceUnixEpoch;
+use serde::Serialize;
 
 /// A [`TimelineItem`](super::TimelineItem) that doesn't correspond to an event.
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Serialize)]
 pub enum VirtualTimelineItem {
     /// A divider between messages of two days.
     ///

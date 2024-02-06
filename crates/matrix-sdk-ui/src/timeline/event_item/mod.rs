@@ -24,6 +24,7 @@ use ruma::{
     EventId, MilliSecondsSinceUnixEpoch, OwnedEventId, OwnedMxcUri, OwnedTransactionId,
     OwnedUserId, RoomId, RoomVersionId, TransactionId, UserId,
 };
+use serde::Serialize;
 use tracing::warn;
 
 mod content;
@@ -50,7 +51,7 @@ pub(super) use self::{
 /// There is always one main event that gives the `EventTimelineItem` its
 /// identity but in many cases, additional events like reactions and edits are
 /// also part of the item.
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Serialize)]
 pub struct EventTimelineItem {
     /// The sender of the event.
     pub(super) sender: OwnedUserId,
@@ -458,7 +459,7 @@ pub struct Profile {
 /// Some details of an [`EventTimelineItem`] that may require server requests
 /// other than just the regular
 /// [`sync_events`][ruma::api::client::sync::sync_events].
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Serialize)]
 pub enum TimelineDetails<T> {
     /// The details are not available yet, and have not been request from the
     /// server.

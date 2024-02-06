@@ -15,10 +15,11 @@
 use std::{ops::Deref, sync::Arc};
 
 use as_variant::as_variant;
+use serde::Serialize;
 
 use super::{EventTimelineItem, VirtualTimelineItem};
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Serialize)]
 #[allow(clippy::large_enum_variant)]
 pub enum TimelineItemKind {
     /// An event or aggregation of multiple events.
@@ -29,7 +30,7 @@ pub enum TimelineItemKind {
 }
 
 /// A single entry in timeline.
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Serialize)]
 pub struct TimelineItem {
     pub(crate) kind: TimelineItemKind,
     pub(crate) internal_id: u64,
