@@ -806,8 +806,12 @@ impl Drop for TimelineDropHandle {
         for handle in self.event_handler_handles.drain(..) {
             self.client.remove_event_handler(handle);
         }
+        // wasm auto aborts on handle drop
+        #[cfg(not(target_arch = "wasm32"))]
         self.room_update_join_handle.abort();
+        #[cfg(not(target_arch = "wasm32"))]
         self.ignore_user_list_update_join_handle.abort();
+        #[cfg(not(target_arch = "wasm32"))]
         self.room_key_from_backups_join_handle.abort();
     }
 }

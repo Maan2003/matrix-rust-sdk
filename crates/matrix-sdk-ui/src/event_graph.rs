@@ -43,23 +43,21 @@
 use std::{collections::BTreeMap, fmt::Debug, sync::Arc};
 
 use async_trait::async_trait;
+use matrix_sdk::executor::{spawn, JoinHandle};
 use matrix_sdk::{sync::RoomUpdate, Client, Room};
 use matrix_sdk_base::{
     deserialized_responses::{AmbiguityChange, SyncTimelineEvent},
     sync::{JoinedRoom, LeftRoom, Timeline},
+    SendOutsideWasm, SyncOutsideWasm,
 };
 use ruma::{
     events::{AnyRoomAccountDataEvent, AnySyncEphemeralRoomEvent},
     serde::Raw,
     OwnedEventId, OwnedRoomId, RoomId,
 };
-use tokio::{
-    spawn,
-    sync::{
-        broadcast::{error::RecvError, Receiver, Sender},
-        RwLock,
-    },
-    task::JoinHandle,
+use tokio::sync::{
+    broadcast::{error::RecvError, Receiver, Sender},
+    RwLock,
 };
 use tracing::{debug, error, trace};
 
@@ -82,6 +80,7 @@ struct RoomGraphDropHandles {
 
 impl Drop for RoomGraphDropHandles {
     fn drop(&mut self) {
+        #[cfg(not(target_arch = "wasm32"))]
         self.listen_updates_task.abort();
     }
 }
@@ -149,8 +148,9 @@ impl EventGraph {
 /// It really acts as a cache, in the sense that clearing the backing data
 /// should not have any irremediable effect, other than providing a lesser user
 /// experience.
-#[async_trait]
-pub trait EventGraphStore: Send + Sync {
+#[cfg_attr(target_arch = "wasm32", async_trait(?Send))]
+#[cfg_attr(not(target_arch = "wasm32"), async_trait)]
+pub trait EventGraphStore: SendOutsideWasm + SyncOutsideWasm {
     /// Returns all the known events for the given room.
     async fn room_events(&self, room: &RoomId) -> Result<Vec<SyncTimelineEvent>>;
 
@@ -172,7 +172,8 @@ impl MemoryStore {
     }
 }
 
-#[async_trait]
+#[cfg_attr(target_arch = "wasm32", async_trait(?Send))]
+#[cfg_attr(not(target_arch = "wasm32"), async_trait)]
 impl EventGraphStore for MemoryStore {
     async fn room_events(&self, room: &RoomId) -> Result<Vec<SyncTimelineEvent>> {
         Ok(self.by_room.read().await.get(room).cloned().unwrap_or_default())

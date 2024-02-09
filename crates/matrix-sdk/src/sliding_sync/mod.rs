@@ -27,13 +27,16 @@ mod utils;
 use std::{
     collections::{BTreeMap, BTreeSet, HashSet},
     fmt::Debug,
-    future::Future,
+    future::{Future, IntoFuture},
     sync::{Arc, RwLock as StdRwLock},
     time::Duration,
 };
 
+use crate::executor::spawn;
 use async_stream::stream;
 use futures_core::stream::Stream;
+use futures_util::select_biased;
+use futures_util::FutureExt as _;
 use matrix_sdk_common::{ring_buffer::RingBuffer, timer};
 use ruma::{
     api::client::{
@@ -43,10 +46,7 @@ use ruma::{
     assign, OwnedEventId, OwnedRoomId, RoomId,
 };
 use serde::{Deserialize, Serialize};
-use tokio::{
-    select, spawn,
-    sync::{broadcast::Sender, Mutex as AsyncMutex, OwnedMutexGuard, RwLock as AsyncRwLock},
-};
+use tokio::sync::{broadcast::Sender, Mutex as AsyncMutex, OwnedMutexGuard, RwLock as AsyncRwLock};
 use tracing::{debug, error, info, instrument, trace, warn, Instrument, Span};
 use url::Url;
 
@@ -628,28 +628,13 @@ impl SlidingSync {
                 // aborted as soon as possible.
 
                 let client = self.inner.client.clone();
-                let e2ee_uploads = spawn(async move {
-                    if let Err(error) = client.send_outgoing_requests().await {
-                        error!(?error, "Error while sending outgoing E2EE requests");
-                    }
-                })
-                // Ensure that the task is not running in detached mode. It is aborted when it's
-                // dropped.
-                .abort_on_drop();
+                let (response, e2ee_uploads) =
+                    futures_util::join!(request.into_future(), client.send_outgoing_requests(),);
+                if let Err(error) = e2ee_uploads {
+                    error!(?error, "Error while sending outgoing E2EE requests");
+                }
 
-                // Wait on the sliding sync request success or failure early.
-                let response = request.await?;
-
-                // At this point, if `request` has been resolved successfully, we wait on
-                // `e2ee_uploads`. It did run concurrently, so it should not be blocking for too
-                // long. Otherwise —if `request` has failed— `e2ee_uploads` has
-                // been dropped, so aborted.
-                e2ee_uploads.await.map_err(|error| Error::JoinError {
-                    task_description: "e2ee_uploads".to_owned(),
-                    error,
-                })?;
-
-                response
+                response?
             } else {
                 request.await?
             }
@@ -731,10 +716,8 @@ impl SlidingSync {
                     debug!("Sync stream is running");
                 });
 
-                select! {
-                    biased;
-
-                    internal_message = internal_channel_receiver.recv() => {
+                select_biased! {
+                    internal_message = internal_channel_receiver.recv().fuse() => {
                         use SlidingSyncInternalMessage::*;
 
                         sync_span.in_scope(|| {
@@ -752,7 +735,7 @@ impl SlidingSync {
                         }
                     }
 
-                    update_summary = self.sync_once().instrument(sync_span.clone()) => {
+                    update_summary = self.sync_once().instrument(sync_span.clone()).fuse() => {
                         match update_summary {
                             Ok(updates) => {
                                 yield Ok(updates);

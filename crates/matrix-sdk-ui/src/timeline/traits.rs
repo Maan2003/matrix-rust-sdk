@@ -17,7 +17,7 @@ use indexmap::IndexMap;
 use matrix_sdk::Room;
 #[cfg(feature = "e2e-encryption")]
 use matrix_sdk::{deserialized_responses::TimelineEvent, Result};
-use matrix_sdk_base::latest_event::LatestEvent;
+use matrix_sdk_base::{latest_event::LatestEvent, SendOutsideWasm, SyncOutsideWasm};
 use ruma::{
     events::receipt::{Receipt, ReceiptThread, ReceiptType},
     push::{PushConditionRoomCtx, Ruleset},
@@ -30,7 +30,8 @@ use tracing::{debug, error, warn};
 use super::{Profile, TimelineBuilder};
 use crate::timeline::Timeline;
 
-#[async_trait]
+#[cfg_attr(target_arch = "wasm32", async_trait(?Send))]
+#[cfg_attr(not(target_arch = "wasm32"), async_trait)]
 pub trait RoomExt {
     /// Get a [`Timeline`] for this room.
     ///
@@ -52,7 +53,8 @@ pub trait RoomExt {
     fn timeline_builder(&self) -> TimelineBuilder;
 }
 
-#[async_trait]
+#[cfg_attr(target_arch = "wasm32", async_trait(?Send))]
+#[cfg_attr(not(target_arch = "wasm32"), async_trait)]
 impl RoomExt for Room {
     async fn timeline(&self) -> crate::event_graph::Result<Timeline> {
         self.timeline_builder().build().await
@@ -63,8 +65,11 @@ impl RoomExt for Room {
     }
 }
 
-#[async_trait]
-pub(super) trait RoomDataProvider: Clone + Send + Sync + 'static {
+#[cfg_attr(target_arch = "wasm32", async_trait(?Send))]
+#[cfg_attr(not(target_arch = "wasm32"), async_trait)]
+pub(super) trait RoomDataProvider:
+    Clone + SendOutsideWasm + SyncOutsideWasm + 'static
+{
     fn own_user_id(&self) -> &UserId;
     fn room_version(&self) -> RoomVersionId;
     async fn profile_from_user_id(&self, user_id: &UserId) -> Option<Profile>;
@@ -84,7 +89,8 @@ pub(super) trait RoomDataProvider: Clone + Send + Sync + 'static {
     async fn push_rules_and_context(&self) -> Option<(Ruleset, PushConditionRoomCtx)>;
 }
 
-#[async_trait]
+#[cfg_attr(target_arch = "wasm32", async_trait(?Send))]
+#[cfg_attr(not(target_arch = "wasm32"), async_trait)]
 impl RoomDataProvider for Room {
     fn own_user_id(&self) -> &UserId {
         (**self).own_user_id()
@@ -196,13 +202,15 @@ impl RoomDataProvider for Room {
 // Internal helper to make most of retry_event_decryption independent of a room
 // object, which is annoying to create for testing and not really needed
 #[cfg(feature = "e2e-encryption")]
-#[async_trait]
-pub(super) trait Decryptor: Clone + Send + Sync + 'static {
+#[cfg_attr(target_arch = "wasm32", async_trait(?Send))]
+#[cfg_attr(not(target_arch = "wasm32"), async_trait)]
+pub(super) trait Decryptor: Clone + SendOutsideWasm + SyncOutsideWasm + 'static {
     async fn decrypt_event_impl(&self, raw: &Raw<AnySyncTimelineEvent>) -> Result<TimelineEvent>;
 }
 
 #[cfg(feature = "e2e-encryption")]
-#[async_trait]
+#[cfg_attr(target_arch = "wasm32", async_trait(?Send))]
+#[cfg_attr(not(target_arch = "wasm32"), async_trait)]
 impl Decryptor for Room {
     async fn decrypt_event_impl(&self, raw: &Raw<AnySyncTimelineEvent>) -> Result<TimelineEvent> {
         self.decrypt_event(raw.cast_ref()).await
@@ -210,7 +218,8 @@ impl Decryptor for Room {
 }
 
 #[cfg(all(test, feature = "e2e-encryption"))]
-#[async_trait]
+#[cfg_attr(target_arch = "wasm32", async_trait(?Send))]
+#[cfg_attr(not(target_arch = "wasm32"), async_trait)]
 impl Decryptor for (matrix_sdk_base::crypto::OlmMachine, ruma::OwnedRoomId) {
     async fn decrypt_event_impl(&self, raw: &Raw<AnySyncTimelineEvent>) -> Result<TimelineEvent> {
         let (olm_machine, room_id) = self;

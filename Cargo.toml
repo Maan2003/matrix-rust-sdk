@@ -33,7 +33,7 @@ eyeball-im = { version = "0.4.1", features = ["tracing"] }
 eyeball-im-util = "0.5.1"
 futures-core = "0.3.28"
 futures-executor = "0.3.21"
-futures-util = { version = "0.3.26", default-features = false, features = ["alloc"] }
+futures-util = { version = "0.3.26", default-features = false, features = ["alloc", "async-await-macro"] }
 http = "0.2.6"
 itertools = "0.12.0"
 ruma = { git = "https://github.com/maan2003/ruma", branch = "add-serde-derive", features = ["client-api-c", "compat-upload-signatures", "compat-user-id", "compat-arbitrary-length-ids", "unstable-msc3401"] }
@@ -46,7 +46,7 @@ serde_json = "1.0.91"
 sha2 = "0.10.8"
 stream_assert = "0.1.1"
 thiserror = "1.0.38"
-tokio = { version = "1.30.0", default-features = false, features = ["sync"] }
+tokio = { version = "1.30.0", default-features = false, features = ["sync", "macros"] }
 tokio-stream = "0.1.14"
 tracing = { version = "0.1.40", default-features = false, features = ["std"] }
 tracing-core = "0.1.32"

@@ -47,6 +47,11 @@ pub struct JoinHandle<T> {
 }
 
 #[cfg(target_arch = "wasm32")]
+impl<T> JoinHandle<T> {
+    pub fn abort(self) {}
+}
+
+#[cfg(target_arch = "wasm32")]
 impl<T: 'static> Future for JoinHandle<T> {
     type Output = Result<T, JoinError>;
 

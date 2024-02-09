@@ -39,6 +39,7 @@ pub struct RoomList {
 
 impl Drop for RoomList {
     fn drop(&mut self) {
+        #[cfg(not(target_arch = "wasm32"))]
         self.loading_state_task.abort();
     }
 }

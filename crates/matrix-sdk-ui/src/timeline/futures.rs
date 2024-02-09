@@ -56,12 +56,10 @@ impl<'a> IntoFuture for SendAttachment<'a> {
                 .expect("path was created from UTF-8 string, hence filename part is UTF-8 too");
             let data = fs::read(&url).map_err(|_| Error::InvalidAttachmentData)?;
 
-            timeline
-                .room()
-                .send_attachment(body, &mime_type, data, config)
-                .with_send_progress_observable(send_progress)
-                .await
-                .map_err(|_| Error::FailedSendingAttachment)?;
+            let value = timeline.room().send_attachment(body, &mime_type, data, config);
+            #[cfg(not(target_arch = "wasm32"))]
+            let value = value.with_send_progress_observable(send_progress);
+            value.await.map_err(|_| Error::FailedSendingAttachment)?;
 
             Ok(())
         };

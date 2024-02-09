@@ -3344,6 +3344,7 @@ dependencies = [
  "futures-core",
  "futures-util",
  "fuzzy-matcher",
+ "gloo-timers",
  "imbl",
  "indexmap 2.2.2",
  "itertools 0.12.1",
