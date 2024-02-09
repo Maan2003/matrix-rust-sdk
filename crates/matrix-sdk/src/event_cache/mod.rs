@@ -52,8 +52,10 @@ use matrix_sdk_base::{
     deserialized_responses::{AmbiguityChange, SyncTimelineEvent, TimelineEvent},
     sync::{JoinedRoomUpdate, LeftRoomUpdate, RoomUpdates, Timeline},
 };
-use matrix_sdk_common::executor::{spawn, JoinHandle};
-use matrix_sdk_common::timeout::timeout;
+use matrix_sdk_common::{
+    executor::{spawn, JoinHandle},
+    timeout::timeout,
+};
 use ruma::{
     assign,
     events::{AnyRoomAccountDataEvent, AnySyncEphemeralRoomEvent},

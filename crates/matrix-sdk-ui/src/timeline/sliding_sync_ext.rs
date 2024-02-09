@@ -18,7 +18,8 @@ use tracing::instrument;
 
 use super::EventTimelineItem;
 
-#[async_trait]
+#[cfg_attr(target_arch = "wasm32", async_trait(?Send))]
+#[cfg_attr(not(target_arch = "wasm32"), async_trait)]
 pub trait SlidingSyncRoomExt {
     /// Get the latest timeline item of this room, if it is already cached.
     ///
@@ -27,7 +28,8 @@ pub trait SlidingSyncRoomExt {
     async fn latest_timeline_item(&self) -> Option<EventTimelineItem>;
 }
 
-#[async_trait]
+#[cfg_attr(target_arch = "wasm32", async_trait(?Send))]
+#[cfg_attr(not(target_arch = "wasm32"), async_trait)]
 impl SlidingSyncRoomExt for SlidingSyncRoom {
     /// Get a timeline item representing the latest event in this room.
     /// This method wraps latest_event, converting the event into an
