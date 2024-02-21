@@ -37,18 +37,30 @@ where
     let (fut, handle) = future.remote_handle();
     wasm_bindgen_futures::spawn_local(fut);
 
-    JoinHandle { handle }
+    JoinHandle { handle: Some(handle) }
 }
 
 #[cfg(target_arch = "wasm32")]
 #[derive(Debug)]
 pub struct JoinHandle<T> {
-    handle: RemoteHandle<T>,
+    handle: Option<RemoteHandle<T>>,
 }
 
 #[cfg(target_arch = "wasm32")]
 impl<T> JoinHandle<T> {
-    pub fn abort(self) {}
+    pub fn abort(mut self) {
+        drop(self.handle.take());
+    }
+}
+
+#[cfg(target_arch = "wasm32")]
+impl<T> Drop for JoinHandle<T> {
+    fn drop(&mut self) {
+        // don't abort the spawned future
+        if let Some(h) = self.handle.take() {
+            h.forget();
+        }
+    }
 }
 
 #[cfg(target_arch = "wasm32")]
@@ -56,6 +68,10 @@ impl<T: 'static> Future for JoinHandle<T> {
     type Output = Result<T, JoinError>;
 
     fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
-        Pin::new(&mut self.handle).poll(cx).map(Ok)
+        if let Some(handle) = self.handle.as_mut() {
+            Pin::new(handle).poll(cx).map(Ok)
+        } else {
+            Poll::Pending
+        }
     }
 }
