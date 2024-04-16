@@ -86,6 +86,3 @@ features = [
     "sqlite",
     "uniffi",
 ]
-
-[lints]
-workspace = true

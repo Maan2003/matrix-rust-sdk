@@ -156,6 +156,3 @@ wiremock = { version = "0.5.13" }
 [[test]]
 name = "integration"
 required-features = ["testing"]
-
-[lints]
-workspace = true
