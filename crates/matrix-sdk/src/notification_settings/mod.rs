@@ -37,6 +37,7 @@ pub enum RoomNotificationMode {
     MentionsAndKeywordsOnly,
     /// Do not receive any notifications.
     Mute,
+    AllEvenWhenLeft,
 }
 
 /// Whether or not a room is encrypted
@@ -287,6 +288,7 @@ impl NotificationSettings {
                 // insert an `Override` rule which doesn't notify
                 (RuleKind::Override, false)
             }
+            RoomNotificationMode::AllEvenWhenLeft => (RuleKind::Override, true),
         };
 
         // Extract all the custom rules except the one we just created.
